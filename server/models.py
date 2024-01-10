@@ -10,6 +10,16 @@ metadata = MetaData(naming_convention={
 
 db = SQLAlchemy(metadata=metadata)
 
+# Association table to store many-to-many relationship between employees and meetings
+employee_meetings = db.Table(
+    'employees_meetings',
+    metadata,
+    db.Column('employee_id', db.Integer, db.ForeignKey(
+        'employees.id'), primary_key=True),
+    db.Column('meeting_id', db.Integer, db.ForeignKey(
+        'meetings.id'), primary_key=True)
+)
+
 
 class Employee(db.Model):
     __tablename__ = 'employees'
@@ -17,6 +27,10 @@ class Employee(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String)
     hire_date = db.Column(db.Date)
+
+    # Relationship mapping the employee to related meetings
+    meetings = db.relationship(
+        'Meeting', secondary=employee_meetings, back_populates='employees')
 
     def __repr__(self):
         return f'<Employee {self.id}, {self.name}, {self.hire_date}>'
@@ -30,10 +44,12 @@ class Meeting(db.Model):
     scheduled_time = db.Column(db.DateTime)
     location = db.Column(db.String)
 
+    # Relationship mapping the meeting to related employees
+    employees = db.relationship(
+        'Employee', secondary=employee_meetings, back_populates='meetings')
+
     def __repr__(self):
         return f'<Meeting {self.id}, {self.topic}, {self.scheduled_time}, {self.location}>'
-
-
 class Project(db.Model):
     __tablename__ = 'projects'
 
@@ -43,3 +59,25 @@ class Project(db.Model):
 
     def __repr__(self):
         return f'<Review {self.id}, {self.title}, {self.budget}>'
+
+
+class Assignment(db.Model):
+    __tablename__ = 'assignments'
+
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String)
+    start_date = db.Column(db.DateTime)
+    end_date = db.Column(db.DateTime)
+
+    # Foreign key to store the employee id
+    employee_id = db.Column(db.Integer, db.ForeignKey('employees.id'))
+    # Foreign key to store the project id
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'))
+
+    # Relationship mapping the assignment to related employee
+    employee = db.relationship('Employee', back_populates='assignments')
+    # Relationship mapping the assignment to related project
+    project = db.relationship('Project', back_populates='assignments')
+
+    def __repr__(self):
+        return f'<Assignment {self.id}, {self.role}, {self.start_date}, {self.end_date}, {self.employee.name}, {self.project.title}>'
